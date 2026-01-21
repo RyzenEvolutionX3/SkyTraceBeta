@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyTrace - Flight Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tagline {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .settings-btn {
+            position: absolute;
+            top: 30px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input, select, button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+        }
+
+        input, select {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        button {
+            background: #fff;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #globe-container {
+            width: 100%;
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .globe-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .flight-list, .country-list {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .flight-list::-webkit-scrollbar, .country-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .flight-list::-webkit-scrollbar-track, .country-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .flight-list::-webkit-scrollbar-thumb, .country-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .flight-item, .country-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .flight-item:hover, .country-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .flight-item.selected {
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .flight-details {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .airport {
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .airport-name {
+            font-size: 0.85em;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+
+        .arrow {
+            font-size: 1.5em;
+        }
+
+        .flight-info {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .airline-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .passport-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .country-search {
+            margin-bottom: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-header h2 {
+            font-size: 2em;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #fff;
+            font-size: 1.5em;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setting-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .setting-label {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.3);
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #fff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+            background-color: #667eea;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .passport-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>SkyTrace</h1>
+        <p class="tagline">Track flights & explore your travel journey</p>
+        <button class="settings-btn" onclick="openSettings()">Settings</button>
+    </header>
+
+    <div class="main-content">
+        <div class="card">
+            <h2>Interactive Globe</h2>
+            <div id="globe-container">
+                <div class="globe-info" id="globe-info">
+                    Click a flight to see the route
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('flights')">Flights</div>
+                <div class="tab" onclick="switchTab('passport')">My Passport</div>
+            </div>
+
+            <div id="flights-tab">
+                <div class="search-box">
+                    <select id="search-type">
+                        <option value="live">Live Flights</option>
+                        <option value="airline">By Airline</option>
+                        <option value="route">By Route</option>
+                    </select>
+                    <input type="text" id="search-input" placeholder="Search...">
+                    <button onclick="searchFlights()" id="search-btn">Search</button>
+                </div>
+
+                <div id="flight-list" class="flight-list">
+                    <div class="loading">Click Search to load live flights!</div>
+                </div>
+            </div>
+
+            <div id="passport-tab" style="display: none;">
+                <div class="passport-stats">
+                    <div class="stat">
+                        <div class="stat-number" id="countries-visited">0</div>
+                        <div class="stat-label">Countries</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="continents-visited">0</div>
+                        <div class="stat-label">Continents</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="flights-logged">0</div>
+                        <div class="stat-label">Flights</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="miles-traveled">0</div>
+                        <div class="stat-label" id="distance-label">Miles</div>
+                    </div>
+                </div>
+
+                <div class="country-search">
+                    <input type="text" id="country-input" placeholder="Add country (press Enter)..." list="countries">
+                    <datalist id="countries"></datalist>
+                </div>
+
+                <div id="country-list" class="country-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="settings-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="close-btn" onclick="closeSettings()">×</button>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">Distance Unit</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="unit-toggle" onchange="toggleUnit()">
+                <span class="slider"></span>
+            </label>
+            <span id="unit-label" style="margin-left: 10px;">Miles</span>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">Auto-rotate Globe</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="rotate-toggle" checked onchange="toggleRotation()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item">
+            <label class="setting-label">Show Flight Paths</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="paths-toggle" checked onchange="togglePaths()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button onclick="resetData()" style="width: 100%; margin-top: 20px; background: rgba(255, 0, 0, 0.3);">
+            Reset All Data
+        </button>
+    </div>
+</div>
+
+<script>
+    let scene, camera, renderer, globe;
+    let visitedCountries = new Set();
+    let loggedFlights = [];
+    let flightPaths = [];
+    let settings = {
+        unit: 'miles',
+        autoRotate: true,
+        showPaths: true
+    };
+
+    const countries = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "North Korea", "South Korea", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"];
+
+    const continentMap = {
+        "United States": "NA", "Canada": "NA", "Mexico": "NA",
+        "Brazil": "SA", "Argentina": "SA", "Chile": "SA", "Colombia": "SA", "Peru": "SA",
+        "United Kingdom": "EU", "France": "EU", "Germany": "EU", "Italy": "EU", "Spain": "EU", "Netherlands": "EU", "Sweden": "EU", "Norway": "EU", "Poland": "EU", "Greece": "EU",
+        "China": "AS", "Japan": "AS", "India": "AS", "South Korea": "AS", "Thailand": "AS", "Singapore": "AS", "Vietnam": "AS", "Indonesia": "AS",
+        "Australia": "OC", "New Zealand": "OC",
+        "Egypt": "AF", "South Africa": "AF", "Nigeria": "AF", "Kenya": "AF", "Morocco": "AF"
+    };
+
+    const airportToCountry = {
+        "JFK": "United States", "LAX": "United States", "ORD": "United States", "DFW": "United States", "ATL": "United States",
+        "LHR": "United Kingdom", "CDG": "France", "FRA": "Germany", "AMS": "Netherlands", "MAD": "Spain",
+        "NRT": "Japan", "HND": "Japan", "PVG": "China", "PEK": "China", "SIN": "Singapore",
+        "SYD": "Australia", "MEL": "Australia", "AKL": "New Zealand",
+        "DXB": "United Arab Emirates", "DOH": "Qatar", "CAI": "Egypt"
+    };
+
+    function initGlobe() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, document.getElementById('globe-container').clientWidth / 500, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+        renderer.setSize(document.getElementById('globe-container').clientWidth, 500);
+        document.getElementById('globe-container').appendChild(renderer.domElement);
+
+        const geometry = new THREE.SphereGeometry(5, 64, 64);
+        const textureLoader = new THREE.TextureLoader();
+        const material = new THREE.MeshPhongMaterial({
+            map: textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'),
+            bumpScale: 0.05,
+            shininess: 10
+        });
+
+        globe = new THREE.Mesh(geometry, material);
+        scene.add(globe);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1.5);
+        light.position.set(5, 3, 5);
+        scene.add(light);
+
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        camera.position.z = 15;
+
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (settings.autoRotate) {
+            globe.rotation.y += 0.002;
+        }
+        renderer.render(scene, camera);
+    }
+
+    function latLonToVector3(lat, lon, radius) {
+        const phi = (90 - lat) * (Math.PI / 180);
+        const theta = (lon + 180) * (Math.PI / 180);
+
+        const x = -(radius * Math.sin(phi) * Math.cos(theta));
+        const z = (radius * Math.sin(phi) * Math.sin(theta));
+        const y = (radius * Math.cos(phi));
+
+        return new THREE.Vector3(x, y, z);
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 3959; // Earth radius in miles
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function drawFlightPath(lat1, lon1, lat2, lon2) {
+        clearFlightPaths();
+
+        if (!settings.showPaths) return;
+
+        const start = latLonToVector3(lat1, lon1, 5.1);
+        const end = latLonToVector3(lat2, lon2, 5.1);
+
+        const curve = new THREE.QuadraticBezierCurve3(
+            start,
+            start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(6),
+            end
+        );
+
+        const points = curve.getPoints(50);
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ color: 0xff6b6b, linewidth: 2 });
+        const line = new THREE.Line(geometry, material);
+
+        scene.add(line);
+        flightPaths.push(line);
+
+        // Add markers
+        const markerGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+        const startMarker = new THREE.Mesh(markerGeometry, new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+        const endMarker = new THREE.Mesh(markerGeometry, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+
+        startMarker.position.copy(start);
+        endMarker.position.copy(end);
+
+        scene.add(startMarker);
+        scene.add(endMarker);
+        flightPaths.push(startMarker, endMarker);
+    }
+
+    function clearFlightPaths() {
+        flightPaths.forEach(obj => scene.remove(obj));
+        flightPaths = [];
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+
+        if (tab === 'flights') {
+            document.getElementById('flights-tab').style.display = 'block';
+            document.getElementById('passport-tab').style.display = 'none';
+        } else {
+            document.getElementById('flights-tab').style.display = 'none';
+            document.getElementById('passport-tab').style.display = 'block';
+        }
+    }
+
+    async function searchFlights() {
+        const apiKey = '367fa51fd6fa03ae70db2772b01c6000';
+        const query = document.getElementById('search-input').value.trim();
+        const searchType = document.getElementById('search-type').value;
+        const flightList = document.getElementById('flight-list');
+        const searchBtn = document.getElementById('search-btn');
+
+        searchBtn.disabled = true;
+        flightList.innerHTML = '<div class="loading">Searching flights...</div>';
+
+        try {
+            let url = `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&limit=50`;
+
+            if (searchType === 'airline' && query) {
+                url += `&airline_name=${encodeURIComponent(query)}`;
+            } else if (searchType === 'route' && query) {
+                url += `&dep_iata=${encodeURIComponent(query)}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.error) {
+                flightList.innerHTML = `<div class="loading">Error: ${data.error.message || 'API error'}</div>`;
+                searchBtn.disabled = false;
+                return;
+            }
+
+            if (data.data && data.data.length > 0) {
+                window.flightData = data.data;
+                flightList.innerHTML = data.data.map((flight, index) => {
+                    const dep = flight.departure;
+                    const arr = flight.arrival;
+                    const airline = flight.airline;
+                    const flightData = flight.flight;
+
+                    return `
+                        <div class="flight-item" onclick="selectFlight(${index})">
+                            <div class="flight-details">
+                                <div>
+                                    <div class="airport">${dep?.iata || 'N/A'}</div>
+                                    <div class="airport-name">${dep?.airport || 'Unknown'}</div>
+                                </div>
+                                <div class="arrow">→</div>
+                                <div>
+                                    <div class="airport">${arr?.iata || 'N/A'}</div>
+                                    <div class="airport-name">${arr?.airport || 'Unknown'}</div>
+                                </div>
+                            </div>
+                            <div class="airline-badge">${airline?.name || 'Unknown Airline'} ${flightData?.iata || flightData?.number || ''}</div>
+                            <div class="flight-info">
+                                ${flight.flight_status ? `Status: ${flight.flight_status}` : ''} |
+                                ${dep?.scheduled ? `Dep: ${new Date(dep.scheduled).toLocaleTimeString()}` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                flightList.innerHTML = '<div class="loading">No flights found. Try a different search!</div>';
+            }
+        } catch (error) {
+            flightList.innerHTML = `<div class="loading">Error: ${error.message}</div>`;
+        }
+
+        searchBtn.disabled = false;
+    }
+
+    function selectFlight(index) {
+        document.querySelectorAll('.flight-item').forEach((item, i) => {
+            if (i === index) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+
+        const flight = window.flightData[index];
+        const dep = flight.departure;
+        const arr = flight.arrival;
+
+        if (dep?.latitude && dep?.longitude && arr?.latitude && arr?.longitude) {
+            drawFlightPath(dep.latitude, dep.longitude, arr.latitude, arr.longitude);
+
+            const distance = calculateDistance(dep.latitude, dep.longitude, arr.latitude, arr.longitude);
+            document.getElementById('globe-info').textContent = `Flight: ${dep.iata} → ${arr.iata} | Distance: ${Math.round(distance)} ${settings.unit}`;
+
+            // Log the flight
+            logFlight(flight, distance);
+
+            // Add countries to passport
+            const depCountry = airportToCountry[dep.iata] || guessCountryFromAirport(dep.airport);
+            const arrCountry = airportToCountry[arr.iata] || guessCountryFromAirport(arr.airport);
+
+            if (depCountry) visitedCountries.add(depCountry);
+            if (arrCountry) visitedCountries.add(arrCountry);
+
+            saveData();
+            updatePassportStats();
+            renderCountryList();
+        }
+    }
+
+    function guessCountryFromAirport(airportName) {
+        if (!airportName) return null;
+        const name = airportName.toLowerCase();
+        for (const country of countries) {
+            if (name.includes(country.toLowerCase())) {
+                return country;
+            }
+        }
+        return null;
+    }
+
+    function logFlight(flight, distance) {
+        const flightLog = {
+            from: flight.departure?.iata,
+            to: flight.arrival?.iata,
+            airline: flight.airline?.name,
+            date: new Date().toISOString(),
+            distance: distance
+        };
+
+        loggedFlights.push(flightLog);
+        saveData();
+    }
+
+    function loadPassport() {
+        const stored = localStorage.getItem('travelData');
+
+        if (stored) {
+            const data = JSON.parse(stored);
+            visitedCountries = new Set(data.countries || []);
+            loggedFlights = data.flights || [];
+            settings = data.settings || settings;
+        }
+
+        updatePassportStats();
+        renderCountryList();
+        applySettings();
+    }
+
+    function saveData() {
+        const data = {
+            countries: Array.from(visitedCountries),
+            flights: loggedFlights,
+            settings: settings
+        };
+        localStorage.setItem('travelData', JSON.stringify(data));
+    }
+
+    function updatePassportStats() {
+        const totalCountries = 195;
+        const visited = visitedCountries.size;
+
+        const continents = new Set();
+        visitedCountries.forEach(country => {
+            const continent = continentMap[country];
+            if (continent) continents.add(continent);
+        });
+
+        const totalMiles = loggedFlights.reduce((sum, f) => sum + (f.distance || 0), 0);
+        const displayDistance = settings.unit === 'km' ? Math.round(totalMiles * 1.60934) : Math.round(totalMiles);
+
+        document.getElementById('countries-visited').textContent = visited;
+        document.getElementById('continents-visited').textContent = continents.size;
+        document.getElementById('flights-logged').textContent = loggedFlights.length;
+        document.getElementById('miles-traveled').textContent = displayDistance.toLocaleString();
+        document.getElementById('distance-label').textContent = settings.unit === 'km' ? 'Kilometers' : 'Miles';
+    }
+
+    function renderCountryList() {
+        const countryList = document.getElementById('country-list');
+        const sorted = Array.from(visitedCountries).sort();
+
+        countryList.innerHTML = sorted.map(country => `
+            <div class="country-item" onclick="removeCountry('${country}')">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>${country}</span>
+                    <span style="opacity: 0.6; font-size: 0.9em;">× Remove</span>
+                </div>
+            </div>
+        `).join('') || '<div class="loading">Add countries you\'ve visited!</div>';
+    }
+
+    function removeCountry(country) {
+        visitedCountries.delete(country);
+        saveData();
+        updatePassportStats();
+        renderCountryList();
+    }
+
+    document.getElementById('country-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const country = e.target.value.trim();
+            if (country && countries.includes(country)) {
+                visitedCountries.add(country);
+                saveData();
+                updatePassportStats();
+                renderCountryList();
+                e.target.value = '';
+            }
+        }
+    });
+
+    const datalist = document.getElementById('countries');
+    countries.forEach(country => {
+        const option = document.createElement('option');
+        option.value = country;
+        datalist.appendChild(option);
+    });
+
+    function openSettings() {
+        document.getElementById('settings-modal').classList.add('active');
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-modal').classList.remove('active');
+    }
+
+    function toggleUnit() {
+        settings.unit = document.getElementById('unit-toggle').checked ? 'km' : 'miles';
+        document.getElementById('unit-label').textContent = settings.unit === 'km' ? 'Kilometers' : 'Miles';
+        saveData();
+        updatePassportStats();
+    }
+
+    function toggleRotation() {
+        settings.autoRotate = document.getElementById('rotate-toggle').checked;
+        saveData();
+    }
+
+    function togglePaths() {
+        settings.showPaths = document.getElementById('paths-toggle').checked;
+        if (!settings.showPaths) {
+            clearFlightPaths();
+        }
+        saveData();
+    }
+
+    function applySettings() {
+        document.getElementById('unit-toggle').checked = settings.unit === 'km';
+        document.getElementById('unit-label').textContent = settings.unit === 'km' ? 'Kilometers' : 'Miles';
+        document.getElementById('rotate-toggle').checked = settings.autoRotate;
+        document.getElementById('paths-toggle').checked = settings.showPaths;
+    }
+
+    function resetData() {
+        if (confirm('Are you sure you want to reset all your travel data? This cannot be undone.')) {
+            localStorage.removeItem('travelData');
+            visitedCountries.clear();
+            loggedFlights = [];
+            updatePassportStats();
+            renderCountryList();
+            clearFlightPaths();
+            closeSettings();
+        }
+    }
+
+    initGlobe();
+    loadPassport();
+</script>
+</body>
+</html>
