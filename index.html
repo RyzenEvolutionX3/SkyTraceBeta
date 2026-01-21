@@ -593,7 +593,7 @@
         flightList.innerHTML = '<div class="loading">Searching flights...</div>';
 
         try {
-            let url = `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&limit=50`;
+            let url = `https://api.aviationstack.com/v1/flights?access_key=${apiKey}&limit=50`;
 
             if (searchType === 'airline' && query) {
                 url += `&airline_name=${encodeURIComponent(query)}`;
@@ -641,6 +641,15 @@
                         }
                     }
 
+                    // Calculate distance
+                    let distanceText = '';
+                    if (dep?.latitude && dep?.longitude && arr?.latitude && arr?.longitude) {
+                        const distMiles = calculateDistance(dep.latitude, dep.longitude, arr.latitude, arr.longitude);
+                        const distKm = distMiles * 1.60934;
+                        const distNm = distMiles * 0.868976;
+                        distanceText = `${Math.round(distMiles).toLocaleString()} mi / ${Math.round(distKm).toLocaleString()} km / ${Math.round(distNm).toLocaleString()} nm`;
+                    }
+
                     return `
                         <div class="flight-item" id="flight-${index}">
                             <div class="flight-details">
@@ -655,6 +664,7 @@
                                 </div>
                             </div>
                             <div class="airline-badge">${airline?.name || 'Unknown Airline'} ${flightData?.iata || flightData?.number || ''}</div>
+                            ${distanceText ? `<div class="flight-info" style="margin-top: 5px;">Distance: ${distanceText}</div>` : ''}
                             <div class="time-info">
                                 <span>Dep: ${depTime ? depTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}</span>
                                 <span>${status}</span>
@@ -678,13 +688,23 @@
     }
 
     function addFlightToPassport(index, event) {
-        event.stopPropagation();
+        if (event) event.stopPropagation();
+
+        if (!window.flightData || !window.flightData[index]) {
+            alert('Flight data not available. Please search for flights first.');
+            return;
+        }
 
         const flight = window.flightData[index];
         const dep = flight.departure;
         const arr = flight.arrival;
 
-        if (dep?.latitude && dep?.longitude && arr?.latitude && arr?.longitude) {
+        if (!dep || !arr) {
+            alert('Flight information incomplete.');
+            return;
+        }
+
+        if (dep.latitude && dep.longitude && arr.latitude && arr.longitude) {
             const distance = calculateDistance(dep.latitude, dep.longitude, arr.latitude, arr.longitude);
 
             // Log the flight
@@ -702,15 +722,19 @@
             renderCountryList();
 
             // Visual feedback
-            const btn = event.target;
-            btn.textContent = 'Added!';
-            btn.style.background = '#4ade80';
-            btn.style.color = '#fff';
-            setTimeout(() => {
-                btn.textContent = 'Add to Passport';
-                btn.style.background = 'rgba(255, 255, 255, 0.9)';
-                btn.style.color = '#667eea';
-            }, 2000);
+            const btn = event ? event.target : document.querySelector(`#flight-${index} .add-flight-btn`);
+            if (btn) {
+                btn.textContent = 'Added!';
+                btn.style.background = '#4ade80';
+                btn.style.color = '#fff';
+                setTimeout(() => {
+                    btn.textContent = 'Add to Passport';
+                    btn.style.background = 'rgba(255, 255, 255, 0.9)';
+                    btn.style.color = '#667eea';
+                }, 2000);
+            }
+        } else {
+            alert('Flight coordinates not available.');
         }
     }
 
