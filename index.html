@@ -507,13 +507,6 @@
             <span id="unit-label" style="margin-left: 10px;">Miles</span>
         </div>
 
-        <div class="setting-item">
-            <label class="setting-label">Auto-rotate Globe</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="rotate-toggle" checked onchange="toggleRotation()">
-                <span class="slider"></span>
-            </label>
-        </div>
 
         <div class="setting-item">
             <label class="setting-label">Show Flight Paths</label>
@@ -864,11 +857,6 @@
         document.getElementById('unit-label').textContent = settings.unit === 'km' ? 'Kilometers' : 'Miles';
         saveData();
         updatePassportStats();
-    }
-
-    function toggleRotation() {
-        settings.autoRotate = document.getElementById('rotate-toggle').checked;
-        saveData();
     }
 
     function togglePaths() {
