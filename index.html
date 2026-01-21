@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyTrace - Flight Tracker</title>
+    <title>SkyTrace</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
@@ -14,8 +14,10 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient( #3F0FB7 0%, #764ba2 100%);
             color: #fff;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             overflow-x: hidden;
         }
 
@@ -432,8 +434,8 @@
 <body>
 <div class="container">
     <header>
-        <h1>SkyTrace</h1>
-        <p class="tagline">Track flights & explore your travel journey</p>
+        <h1>SkyTrace -  - A intuitive Flight Tracker</h1>
+        <p class="tagline">Track flights & caputure your journey</p>
         <button class="settings-btn" onclick="openSettings()">Settings</button>
     </header>
 
@@ -447,9 +449,9 @@
             <div id="flights-tab">
                 <div class="search-box">
                     <select id="search-type">
-                        <option value="live">Live Flights</option>
                         <option value="airline">By Airline</option>
                         <option value="route">By Route</option>
+                        <option value="flightCode">By Code</option>
                     </select>
                     <input type="text" id="search-input" placeholder="Search...">
                     <button onclick="searchFlights()" id="search-btn">Search</button>
@@ -593,6 +595,7 @@
             } else if (searchType === 'route' && query) {
                 url += `&dep_iata=${encodeURIComponent(query)}`;
             }
+
 
             const response = await fetch(url);
             const data = await response.json();
