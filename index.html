@@ -485,6 +485,7 @@
                 <div class="country-search">
                     <input type="text" id="country-input" placeholder="Add country (press Enter)..." list="countries">
                     <datalist id="countries"></datalist>
+                    <button onclick="addCountrytoPassport()" id="search-Con-btn">Add</button>
                 </div>
 
                 <div id="country-list" class="country-list"></div>
@@ -682,6 +683,14 @@
 
         searchBtn.disabled = false;
     }
+    let visitedC = 0;
+
+    function addCountrytoPassport () {
+
+    visitedC = visitedC + 1;
+
+    document.getElementById('countries-visited').textContent = visitedC;
+    }
 
     function addFlightToPassport(index, event) {
         if (event) event.stopPropagation();
@@ -804,6 +813,7 @@
         document.getElementById('flights-logged').textContent = loggedFlights.length;
         document.getElementById('miles-traveled').textContent = displayDistance.toLocaleString();
         document.getElementById('distance-label').textContent = settings.unit === 'km' ? 'Kilometers' : 'Miles';
+
     }
 
     function renderCountryList() {
@@ -885,6 +895,7 @@
             updatePassportStats();
             renderCountryList();
             closeSettings();
+            visitedC = 0;
         }
     }
 
